@@ -32,6 +32,7 @@ use nautilus_core::{consts::NAUTILUS_USER_AGENT, time::get_atomic_clock_realtime
 use nautilus_model::{
     enums::{OrderSide, OrderType, TimeInForce},
     identifiers::{ClientOrderId, InstrumentId, VenueOrderId},
+    instruments::{Instrument, InstrumentAny},
     types::{Price, Quantity},
 };
 use nautilus_network::{
@@ -88,6 +89,7 @@ pub struct BybitWebSocketClient {
     task_handle: Option<tokio::task::JoinHandle<()>>,
     subscriptions: Arc<DashMap<String, ()>>,
     is_authenticated: Arc<AtomicBool>,
+    instruments: Arc<DashMap<InstrumentId, InstrumentAny>>,
 }
 
 impl fmt::Debug for BybitWebSocketClient {
@@ -119,6 +121,7 @@ impl Clone for BybitWebSocketClient {
             task_handle: None, // Each clone gets its own task handle
             subscriptions: Arc::clone(&self.subscriptions),
             is_authenticated: Arc::clone(&self.is_authenticated),
+            instruments: Arc::clone(&self.instruments),
         }
     }
 }
@@ -157,6 +160,7 @@ impl BybitWebSocketClient {
             task_handle: None,
             subscriptions: Arc::new(DashMap::new()),
             is_authenticated: Arc::new(AtomicBool::new(false)),
+            instruments: Arc::new(DashMap::new()),
         }
     }
 
@@ -182,6 +186,7 @@ impl BybitWebSocketClient {
             task_handle: None,
             subscriptions: Arc::new(DashMap::new()),
             is_authenticated: Arc::new(AtomicBool::new(false)),
+            instruments: Arc::new(DashMap::new()),
         }
     }
 
@@ -207,6 +212,7 @@ impl BybitWebSocketClient {
             task_handle: None,
             subscriptions: Arc::new(DashMap::new()),
             is_authenticated: Arc::new(AtomicBool::new(false)),
+            instruments: Arc::new(DashMap::new()),
         }
     }
 
@@ -464,6 +470,19 @@ impl BybitWebSocketClient {
     #[must_use]
     pub fn subscription_count(&self) -> usize {
         self.subscriptions.len()
+    }
+
+    /// Adds an instrument to the cache for parsing WebSocket messages.
+    pub fn add_instrument(&self, instrument: InstrumentAny) {
+        let instrument_id = instrument.id();
+        self.instruments.insert(instrument_id, instrument);
+        tracing::debug!("Added instrument {instrument_id} to WebSocket client cache");
+    }
+
+    /// Returns a reference to the instruments cache.
+    #[must_use]
+    pub fn instruments(&self) -> &Arc<DashMap<InstrumentId, InstrumentAny>> {
+        &self.instruments
     }
 
     /// Subscribes to orderbook updates for a specific instrument.
