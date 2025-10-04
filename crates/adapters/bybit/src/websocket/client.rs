@@ -31,7 +31,7 @@ use nautilus_common::runtime::get_runtime;
 use nautilus_core::{consts::NAUTILUS_USER_AGENT, time::get_atomic_clock_realtime};
 use nautilus_model::{
     enums::{OrderSide, OrderType, TimeInForce},
-    identifiers::{ClientOrderId, InstrumentId, VenueOrderId},
+    identifiers::{AccountId, ClientOrderId, InstrumentId, VenueOrderId},
     instruments::{Instrument, InstrumentAny},
     types::{Price, Quantity},
 };
@@ -90,6 +90,7 @@ pub struct BybitWebSocketClient {
     subscriptions: Arc<DashMap<String, ()>>,
     is_authenticated: Arc<AtomicBool>,
     instruments: Arc<DashMap<InstrumentId, InstrumentAny>>,
+    account_id: Option<AccountId>,
 }
 
 impl fmt::Debug for BybitWebSocketClient {
@@ -122,6 +123,7 @@ impl Clone for BybitWebSocketClient {
             subscriptions: Arc::clone(&self.subscriptions),
             is_authenticated: Arc::clone(&self.is_authenticated),
             instruments: Arc::clone(&self.instruments),
+            account_id: self.account_id,
         }
     }
 }
@@ -161,6 +163,7 @@ impl BybitWebSocketClient {
             subscriptions: Arc::new(DashMap::new()),
             is_authenticated: Arc::new(AtomicBool::new(false)),
             instruments: Arc::new(DashMap::new()),
+            account_id: None,
         }
     }
 
@@ -187,6 +190,7 @@ impl BybitWebSocketClient {
             subscriptions: Arc::new(DashMap::new()),
             is_authenticated: Arc::new(AtomicBool::new(false)),
             instruments: Arc::new(DashMap::new()),
+            account_id: None,
         }
     }
 
@@ -213,6 +217,7 @@ impl BybitWebSocketClient {
             subscriptions: Arc::new(DashMap::new()),
             is_authenticated: Arc::new(AtomicBool::new(false)),
             instruments: Arc::new(DashMap::new()),
+            account_id: None,
         }
     }
 
@@ -483,6 +488,17 @@ impl BybitWebSocketClient {
     #[must_use]
     pub fn instruments(&self) -> &Arc<DashMap<InstrumentId, InstrumentAny>> {
         &self.instruments
+    }
+
+    /// Sets the account ID for account message parsing.
+    pub fn set_account_id(&mut self, account_id: AccountId) {
+        self.account_id = Some(account_id);
+    }
+
+    /// Returns the account ID if set.
+    #[must_use]
+    pub fn account_id(&self) -> Option<AccountId> {
+        self.account_id
     }
 
     /// Subscribes to orderbook updates for a specific instrument.
